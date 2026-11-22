@@ -240,3 +240,5 @@ The application provides an asynchronous, non-blocking MQTT telemetry client rea
 ## 8. License & Authorship
 
 Developed as a desktop-first engineering software application adhering to classical hydraulic principles and civil engineering design standards.
+#   H y d r o p o w e r _ I n t e l  
+ 
