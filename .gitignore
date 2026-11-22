@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution & Build
+build/
+dist/
+*.spec
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data & Runtime
+*.db-journal
+data/exports/
+data/cache/
+*.log
+
+# Streamlit
+.streamlit/secrets.toml
