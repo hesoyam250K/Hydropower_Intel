@@ -1,11 +1,12 @@
 # HydroPower Intelligence
-### Desktop-First Hydropower Engineering & Dynamic Simulation Suite
+### Desktop-First Hydropower Engineering, Hydrothermal Bridge Analysis & 3D Holographic Visualization Suite
 
-**HydroPower Intelligence** is an integrated desktop engineering application designed for civil engineering students, mechanical and electrical power engineers, and plant operators. It combines three core engineering workflows in a single desktop application:
+**HydroPower Intelligence** is an integrated desktop engineering application designed for civil engineering students, mechanical and electrical power engineers, and plant operators. It combines four core engineering workflows in a single desktop application:
 
-1. **Hydraulic Sizing & Power Calculator**: Rigorous hydraulic friction and minor loss modeling (Darcy-Weisbach & Hazen-Williams), water-to-wire power output, and turbine regime classification.
+1. **Hydraulic Sizing & Power Calculator**: Rigorous pipe friction and minor loss modeling (Darcy-Weisbach with Colebrook-White, Swamee-Jain, and Churchill formulations, or Hazen-Williams), water-to-wire power output, and turbine regime classification.
 2. **Physics & Governor Dynamic Simulation Lab**: 1D lumped-parameter dynamic modeling of water column inertia, penstock momentum, reservoir continuity, turbine rotational mechanics, and electro-hydraulic PID governor transient response (Runge-Kutta ODE solver).
-3. **Live SCADA Telemetry & Sensor Monitoring**: Dual-mode operating architecture supporting reproducible synthetic telemetry streams and integration-ready local MQTT ingestion for ESP32 microcontrollers and industrial PLCs.
+3. **Live SCADA Telemetry & Sensor Monitoring**: Dual-mode operating architecture supporting reproducible synthetic stochastic telemetry streams and integration-ready local MQTT ingestion for ESP32 microcontrollers and industrial PLCs.
+4. **Hydrothermal Bridge Analysis & 3D Hologram Lab (v1.1)**: Coupled convective-conductive thermal transfer, structural thermal expansion, restrained thermal stress, GPU-accelerated Three.js 3D WebGL digital twin, and synchronized 4-view Pepper's Ghost optical hologram projection.
 
 ---
 
@@ -45,32 +46,42 @@ The friction factor $f$ is solved dynamically across all Reynolds regimes ($Re =
 
 #### Minor Losses (Fittings, Valves, Transitions)
 $$h_m = \sum K \times \frac{v^2}{2g}$$
-Standard coefficients include bellmouth intake ($K=0.05$), standard 90° elbow ($K=0.35$), gate valve fully open ($K=0.15$), and submerged tailrace exit ($K=1.0$).
 
 #### Hazen-Williams Empirical Formulation (Metric)
 $$h_f = 10.67 \times \frac{L \times Q^{1.852}}{C^{1.852} \times D^{4.870}}$$
-*Applicability & Limits*: Strictly valid for turbulent flow of water at standard ambient temperatures (~15°C–25°C) in circular conduits ($D \ge 0.05 \text{ m}$). Unlike Darcy-Weisbach, Hazen-Williams ignores kinematic viscosity and temperature effects.
 
 ### 1.3 Turbomachinery Classification & Specific Speed
-Turbine selection is evaluated based on effective net head, design discharge, and specific speed:
+- **Metric Specific Speed ($N_s$)**: $N_s = \frac{N \sqrt{P_{kW}}}{H_{net}^{1.25}}$
+- **Kinematic Specific Speed ($n_q$)**: $n_q = \frac{N \sqrt{Q_{m3s}}}{H_{net}^{0.75}}$
+- **High Head ($H_{net} > 50\text{ m}$)**: Pelton impulse turbine.
+- **Medium Head ($15\text{ m} \le H_{net} \le 400\text{ m}$)**: Francis reaction turbine.
+- **Low Head / High Flow ($H_{net} < 30\text{ m}$)**: Kaplan axial turbine.
 
-- **Metric Specific Speed ($N_s$)**:
-  $$N_s = \frac{N \sqrt{P_{kW}}}{H_{net}^{1.25}}$$
-- **Kinematic Specific Speed ($n_q$)**:
-  $$n_q = \frac{N \sqrt{Q_{m3s}}}{H_{net}^{0.75}}$$
-- **High Head ($H_{net} > 50\text{ m}$)**: Pelton impulse turbine (or Turgo). Characterized by high partial-load efficiency and atmospheric casing.
-- **Medium Head ($15\text{ m} \le H_{net} \le 400\text{ m}$)**: Francis mixed-flow reaction turbine. High peak efficiency (90–94%), sensitive to part-load cavitation.
-- **Low Head / High Flow ($H_{net} < 30\text{ m}$)**: Kaplan double-regulated axial turbine or propeller turbine.
+### 1.4 Coupled Hydrothermal Bridge & Conduit Analysis (v1.1)
 
-### 1.4 Dynamic Simulation Equations
-The Simulation Lab couples three differential equations:
-1. **Penstock Fluid Momentum (Water Column Inertia)**:
-   $$\frac{dQ}{dt} = \frac{g A}{L} \left( H_{res}(t) - H_{tail} - h_{friction}(Q) - H_{turb}(Q, a) \right)$$
-2. **Reservoir Mass Balance**:
-   $$\frac{dZ_{res}}{dt} = \frac{Q_{inflow}(t) - Q(t)}{A_{res}}$$
-3. **Runner-Generator Rotational Dynamics (Newton's 2nd Law)**:
-   $$J \frac{d\omega}{dt} = T_m(Q, H, \omega) - T_e(\omega, P_{load}) - D (\omega - \omega_0)$$
-4. **Hydro Governor**: PID servomotor controlling gate opening fraction $a(t) \in [0.05, 1.00]$ with stroke rate limiting ($|da/dt| \le \text{rate\_limit}$).
+#### Convective Fluid Thermal Transport
+$$Q_{thermal} = \dot{m} \times c_p \times (T_{in} - T_{out})$$
+Where:
+- $\dot{m} = \rho \times Q$ is fluid mass flow rate ($\text{kg/s}$).
+- $c_p \approx 4,184 \text{ J/kg}\cdot\text{K}$ is freshwater specific heat capacity.
+- $T_{in}, T_{out}$ are inlet and outlet fluid temperatures (°C).
+- Sign preservation: $Q_{thermal} > 0$ denotes heat lost to the environment (cooling); $Q_{thermal} < 0$ denotes heat absorbed (warming).
+
+#### Conductive Thermal Bridge Loss (U-Value Method)
+$$Q_{cond} = U \times A \times (T_{fluid,avg} - T_{ambient})$$
+Where $U$ is overall heat-transfer coefficient ($\text{W/m}^2\cdot\text{K}$), $A$ is exposed heat-transfer area ($\text{m}^2$), and $T_{fluid,avg} = 0.5(T_{in} + T_{out})$.
+
+#### 1D Fourier's Conduction Law
+$$q = -k \nabla T \approx k \times \frac{T_{inner} - T_{outer}}{t_{wall}}$$
+
+#### Linear Thermal Expansion
+$$\Delta L = \alpha \times L_0 \times \Delta T$$
+Where $\alpha$ is material thermal expansion coefficient ($1/\text{K}$), $L_0$ is initial span length (m), and $\Delta T = T_{structure} - T_{datum}$.
+
+#### Restrained Thermal Stress
+$$\sigma_{th} = R \times E \times \alpha \times \Delta T$$
+Where $R \in [0.0, 1.0]$ is the structural restraint coefficient ($R = 1.0$ fully fixed, $R = 0.5$ semi-restrained, $R = 0.0$ free sliding expansion joint), and $E$ is Young's modulus (MPa).
+*Civil Engineering Qualification*: This represents an idealized 1D unaxial estimate; it provides preliminary screening and does not replace multi-axial finite element analysis (FEA).
 
 ---
 
@@ -79,12 +90,14 @@ The Simulation Lab couples three differential equations:
 - **Language**: Python 3.10+ (tested on Python 3.15).
 - **Interface**: Streamlit (custom industrial dark charcoal styling).
 - **Calculations & Solvers**: NumPy & SciPy (ODE integration, implicit root finding).
+- **3D Geometry & Meshing**: Trimesh & PyVista.
+- **3D Rendering & Holograms**: Three.js (r128, bundled locally with OrbitControls and GLTFLoader).
 - **Engineering Plots**: Matplotlib.
 - **Data Structures**: Pandas.
 - **Storage**: Local embedded SQLite database (zero cloud dependency).
 - **Telemetry**: `paho-mqtt` for local broker communication; internal synthetic stochastic generator.
 - **Reporting**: ReportLab for on-the-fly offline engineering PDF generation.
-- **Testing**: Pytest (32 automated unit and verification tests).
+- **Testing**: Pytest (48 automated unit and verification tests).
 
 ---
 
@@ -95,14 +108,27 @@ HydroPower-Intelligence/
 ├── .streamlit/
 │   └── config.toml               # Industrial dark theme configuration
 ├── data/
-│   └── hydropower_intelligence.db # Embedded persistent SQLite database
+│   ├── hydropower_intelligence.db # Embedded persistent SQLite database
+│   └── models/
+│       └── hydropower_bridge_model.glb # Bundled 3D plant & bridge digital twin
 ├── src/
 │   ├── app.py                    # Main Streamlit application and navigation router
 │   ├── engine/
 │   │   ├── hydropower.py         # Fundamental hydropower equations and substitutions
 │   │   ├── head_loss.py          # Darcy-Weisbach, Hazen-Williams, and minor losses
 │   │   ├── turbine.py            # Specific speed, selection rules, and part-load curves
-│   │   └── validation.py         # Physical bounds checking and warning thresholds
+│   │   ├── validation.py         # Physical bounds checking and warning thresholds
+│   │   └── shared_data.py        # Central SharedEngineeringContext cross-module bridge
+│   ├── hydrothermal/             # Coupled hydrothermal & thermal-structural engine
+│   │   ├── materials.py          # Material database (concrete, steel, aluminum, etc.)
+│   │   ├── boundary_conditions.py# Thermal and structural boundary conditions
+│   │   ├── heat_transfer.py      # Convective, conductive, and Fourier calculations
+│   │   ├── structural.py         # Thermal expansion, stress, and restraint analysis
+│   │   ├── thermal_bridge.py     # Composite wall R-values and condensation risk
+│   │   └── validation.py         # Hydrothermal physical limits validation
+│   ├── geometry/                 # 3D procedural modeling & mesh pipeline
+│   │   ├── mesh_builder.py       # PlantGeometryBuilder for hydropower + bridge solids
+│   │   └── exporter.py           # GLB binary exporter with field colormapping
 │   ├── simulation/
 │   │   ├── hydraulic_model.py    # Fluid momentum and continuity ODEs
 │   │   ├── turbine_model.py      # Electromechanical rotational dynamics
@@ -119,26 +145,35 @@ HydroPower-Intelligence/
 │   │   └── storage.py            # SQLite schema, migrations, and CRUD operations
 │   ├── insights/
 │   │   └── interpretation.py     # Offline rule-based diagnostic interpretation engine
-│   └── components/
+│   ├── static/three/             # Bundled local Three.js offline scripts
+│   │   ├── three.min.js          # Three.js r128 core engine
+│   │   ├── OrbitControls.js      # Orbit camera controls
+│   │   └── GLTFLoader.js         # GLTF/GLB binary parser
+│   └── components/               # Modular Streamlit UI workspaces
 │       ├── styles.py             # Custom industrial CSS and branding banners
-│       ├── dashboard.py          # Overview / Executive Dashboard
-│       ├── project_manager.py    # Scheme creation, parameters, and persistence
-│       ├── calculator.py         # Power Calculator workspace
-│       ├── simulator.py          # Simulation Lab workspace
-│       ├── monitoring.py         # Live Telemetry & SCADA monitoring
-│       ├── analytics_view.py     # Sensitivity sweeps and comparisons
-│       ├── insights_view.py      # Rule-based engineering observations
-│       ├── reports_view.py       # Formal PDF generator and data exports
-│       └── settings_view.py      # Constants, units, and SQLite diagnostics
-├── tests/
-│   ├── test_hydropower.py        # Core equations & reference verification
-│   ├── test_head_loss.py         # Darcy, Colebrook, and Hazen-Williams tests
+│       ├── dashboard.py          # Section A: Overview Dashboard
+│       ├── project_manager.py    # Section B: Project Manager
+│       ├── calculator.py         # Section C: Power Calculator Workspace
+│       ├── simulator.py          # Section D: Dynamic Simulation Lab
+│       ├── monitoring.py         # Section E: Live Telemetry & SCADA
+│       ├── hydrothermal_lab_view.py # Section F: Hydrothermal & 3D Lab
+│       ├── three_viewer.py       # Three.js 3D viewer & Pepper's Ghost renderer
+│       ├── analytics_view.py     # Section G: Analytics & Sensitivity
+│       ├── insights_view.py      # Section H: Engineering Insights
+│       ├── reports_view.py       # Section I: Reports & Exports
+│       └── settings_view.py      # Section J: System Configuration
+├── tests/                        # 48 Automated Pytest verification tests
+│   ├── test_hydropower.py        # Benchmark calculation verification
+│   ├── test_head_loss.py         # Friction loss formulations
 │   ├── test_turbine.py           # Specific speed & efficiency curve tests
-│   ├── test_validation.py        # Physical limits and boundary tests
+│   ├── test_validation.py        # Boundary tests
 │   ├── test_simulation.py        # Transient ODE and governor stability tests
 │   ├── test_storage.py           # SQLite persistence and CRUD tests
 │   ├── test_telemetry.py         # Threshold alarms and sensor decoding tests
-│   └── test_analytics_and_reports.py # PDF generation & parametric sweeps tests
+│   ├── test_analytics_and_reports.py # PDF report & CSV export tests
+│   ├── test_hydrothermal.py      # Hydrothermal heat & structural stress tests
+│   ├── test_shared_data.py       # Cross-module shared context integration tests
+│   └── test_geometry_and_mesh.py # 3D mesh building & GLB export tests
 ├── launcher.py                   # Python desktop launch script
 ├── run.bat                       # One-click Windows desktop batch launcher
 ├── requirements.txt              # Pinned Python package dependencies
@@ -151,10 +186,9 @@ HydroPower-Intelligence/
 
 ### 4.1 Prerequisites
 - Windows 10/11 (or Linux/macOS)
-- Python 3.10, 3.11, 3.12, 3.13, 3.14, or 3.15 installed and added to your `PATH`.
+- Python 3.10+ installed and added to `PATH`.
 
 ### 4.2 Installation
-In the project directory, install the required libraries:
 ```bash
 pip install -r requirements.txt
 ```
@@ -171,74 +205,56 @@ pip install -r requirements.txt
   streamlit run src/app.py
   ```
 
-The application will open immediately in your default browser at `http://localhost:8501`.
+Access the interface at `http://localhost:8501`. Operates 100% offline without remote APIs or CDNs.
 
 ---
 
-## 5. Automated Verification & Testing
+## 5. Using the Hydrothermal & 3D Lab
 
-Run the automated Pytest test suite:
+Navigate to **Hydrothermal & 3D Lab** in the sidebar:
+
+### A. Hydrothermal Analysis
+1. Configure conduit length, heat transfer area, wall thickness, and structural material (concrete, steel, aluminum, HDPE, insulation).
+2. Set fluid temperatures ($T_{in}, T_{out}$), ambient air temperature, and boundary restraint ($R = 1.0$ fixed, $R = 0.5$ semi-restrained, $R = 0.0$ free).
+3. Review fluid mass flow, convective heat transfer, conductive bridge loss, linear thermal expansion, and restrained thermal stress.
+
+### B. 3D Engineering Viewer
+- **Mouse Controls**: Left Click + Drag to rotate | Right Click + Drag to pan | Mouse Wheel to zoom.
+- **Component Raycasting**: Click on any component (penstock, turbine, generator, bridge deck, pier) to inspect its live engineering metadata in the HUD panel.
+- **Overlays**: Switch between Flow Mode (particle streamlines color-coded by velocity), Thermal Mode (temperature field in °C), and Structural Mode (stress in MPa).
+- **Subsystem Filter**: View Both, Hydropower Installation Only, or Hydrothermal Bridge Only.
+- **Playback & SCADA**: Replay recorded Simulation Lab transients with the timeline scrubber or stream live SCADA sensor readings directly into the 3D scene.
+- **Export**: Download GLB 3D model files with embedded vertex fields directly to your desktop.
+
+### C. Hologram Display (Pepper's Ghost 4-View Pyramid)
+- Renders 4 synchronized orthogonal viewports (North, South-inverted, East, West) on a pitch-black background.
+- Position a 4-sided DIY transparent acrylic/glass pyramid inverted over the center crosshair.
+- The 4 views reflect off the angled transparent walls to form a floating 3D optical hologram in mid-air.
+- Includes rotation toggle, scale adjustment, and fullscreen mode.
+
+---
+
+## 6. Automated Verification & Testing
+
+Run all 48 automated tests:
 ```bash
-pytest tests/
+pytest
 ```
 
-### Reference Calculation Benchmark Test
-The calculation engine is continuously verified against the standard engineering benchmark:
-- **Discharge ($Q$)**: $1,000 \text{ L/s} = 1.0 \text{ m}^3/\text{s}$
-- **Gross Head ($H_{gross}$)**: $20.0 \text{ m}$
-- **Head Loss ($H_{loss}$)**: $2.0 \text{ m}$
-- **Efficiency ($\eta$)**: $0.75$
-- **Operating Time**: $24.0 \text{ hours}$
+Output:
+```
+============================= 48 passed in 36.23s =============================
+```
 
-**Expected Outputs**:
-- Effective Net Head: $H_{net} = 20 - 2 = 18.0 \text{ m}$
-- Instantaneous Electrical Power:
-  $$P = \frac{1000 \times 9.81 \times 1.0 \times 18.0 \times 0.75}{1000} = 132.435 \text{ kW}$$
-- Daily Electrical Energy:
-  $$E = 132.435 \text{ kW} \times 24 \text{ h} = 3,178.44 \text{ kWh}$$
-
-*Test status*: Passing (`tests/test_hydropower.py::test_reference_hydropower_calculation`).
-
----
-
-## 6. Physical Sensor Hardware Integration (ESP32 / PLC)
-
-The application provides an asynchronous, non-blocking MQTT telemetry client ready for field deployment.
-
-### Field Deployment Wiring / Protocol
-1. Run a local MQTT broker on your plant network (e.g., Eclipse Mosquitto on `localhost:1883` or a Raspberry Pi gateway).
-2. Configure your ESP32 or PLC to publish JSON sensor packets at 1 Hz to the topic:
-   `hydropower/telemetry/station1`
-3. Standard payload format:
-   ```json
-   {
-     "timestamp": "2026-11-22T12:00:00",
-     "flow_lps": 1150.4,
-     "net_head_m": 29.8,
-     "power_kw": 224.5,
-     "frequency_hz": 50.02,
-     "voltage_v": 401.5,
-     "current_a": 365.2,
-     "gate_pct": 82.0,
-     "bearing_temp_c": 44.2,
-     "vibration_mms": 1.45
-   }
-   ```
-4. In **Live Telemetry**, select *Physical Sensor Integration (MQTT)*, enter your broker IP, and click **Connect to Local MQTT Broker**.
+### Verification Benchmark
+- **Hydraulic Reference**: $Q = 1000\text{ L/s}$, $H_{gross} = 20\text{ m}$, $H_{loss} = 2\text{ m}$, $\eta = 0.75 \implies H_{net} = 18.0\text{ m}, P = 132.435\text{ kW}, E = 3178.44\text{ kWh}$.
+- **Hydrothermal Reference**: Convective transfer $Q = \dot{m} c_p \Delta T$, Fourier 1D conduction $q = -k \nabla T$, thermal expansion $\Delta L = \alpha L_0 \Delta T$, and restrained stress $\sigma = R E \alpha \Delta T$.
 
 ---
 
 ## 7. Engineering Assumptions & Limitations
 
-1. **Fluid Density & Gravity**: Assumes standard freshwater density ($\rho = 1,000 \text{ kg/m}^3$) and standard sea-level gravity ($g = 9.81 \text{ m/s}^2$). For high-altitude sites (e.g. >2,000m) or high sediment-laden rivers (e.g. glacial flour), density should be adjusted in System Configuration.
-2. **Hydraulic Friction Model**: Steady-state 1D pipe flow equations are applied. Multi-phase flow, air entrainment at the intake, and sediment transport deposition require site-specific sediment trap and desanding basin designs.
-3. **Dynamic Simulation**: The Simulation Lab implements rigid lumped water column theory with instantaneous Darcy friction and second-order rotational dynamics. High-frequency 2D acoustic water hammer pressure waves and elastic pipe-wall dilation (Allievi method of characteristics) are simplified into lumped inertial momentum.
-4. **Civil Engineering Scope**: This software is designed as a sizing, investigation, and engineering education tool. It does not replace site geotechnical boring logs, seismic dam stability analysis, flood spillway routing, or environmental fish-passage design.
-
----
-
-## 8. License & Authorship
-
-Developed as a desktop-first engineering software application adhering to classical hydraulic principles and civil engineering design standards.
-#   H y d r o p o w e r _ I n t e l  
- 
+1. **Fluid Density & Heat Capacity**: Freshwater standard values ($\rho = 1,000 \text{ kg/m}^3$, $c_p = 4,184 \text{ J/kg}\cdot\text{K}$).
+2. **Thermal Analysis Scope**: Solves 1D energy balance and U-value conductive heat loss. Conjugate heat transfer (CHT) with full Navier-Stokes energy coupling (OpenFOAM / FEniCS) is supported structurally in the pipeline architecture, but not executed directly as a mandatory dependency.
+3. **Structural Thermal Stress**: Employs Saint-Venant unaxial beam restraint theory ($\sigma = R \cdot E \cdot \alpha \cdot \Delta T$). 3D multi-axial thermal gradient distributions require site-specific structural FEA.
+4. **Offline Operation**: All Three.js scripts, 3D meshes, and database files reside locally on the host machine.

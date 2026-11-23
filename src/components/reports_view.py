@@ -6,7 +6,14 @@ import pandas as pd
 
 from src.database.storage import DatabaseManager
 from src.engine.hydropower import calculate_comprehensive_hydropower
-from src.analytics.reports import generate_pdf_report, export_calculation_to_csv, export_simulation_to_csv
+from src.analytics.reports import (
+    generate_pdf_report,
+    export_calculation_to_csv,
+    export_simulation_to_csv,
+    export_hydrothermal_to_csv,
+)
+from src.hydrothermal.heat_transfer import analyze_hydrothermal_system
+from src.hydrothermal.structural import analyze_thermal_structural_behavior
 from src.simulation.scenarios import run_dynamic_simulation, SimulationConfig
 
 
@@ -35,6 +42,7 @@ def render_reports_tab(db: DatabaseManager, active_project: Optional[Dict[str, A
             st.checkbox("Include Darcy-Weisbach Penstock Breakdown", value=True)
             st.checkbox("Include Turbine Specific Speed & Regime Classification", value=True)
             st.checkbox("Include Automated Engineering Insights & Recommendations", value=True)
+            inc_thermal = st.checkbox("Include Hydrothermal Bridge & Thermal Stress Section", value=True)
 
         # Build baseline calculation for report
         calc = calculate_comprehensive_hydropower(
@@ -47,13 +55,33 @@ def render_reports_tab(db: DatabaseManager, active_project: Optional[Dict[str, A
             efficiency=float(active_project.get("efficiency", 0.82)),
         )
 
+        th_res = None
+        st_res = None
+        if inc_thermal:
+            th_res = analyze_hydrothermal_system(
+                flow_lps=calc.flow_lps,
+                inlet_temp_c=12.0,
+                ambient_air_temp_c=-5.0,
+                u_value_w_m2k=4.5,
+                heat_transfer_area_m2=180.0,
+                wall_thickness_m=0.35,
+            )
+            st_res = analyze_thermal_structural_behavior(
+                initial_length_m=60.0,
+                structure_temp_c=th_res.mean_fluid_temp_c,
+                datum_temp_c=15.0,
+                restraint_factor=0.5
+            )
+
         pdf_bytes = generate_pdf_report(
             calc=calc,
             project_name=active_project.get("name", "Hydropower Project"),
             location=active_project.get("location", "Civil Engineering Site"),
             river_name=active_project.get("river_name", "Waterway"),
             engineer_name=rep_engineer,
-            custom_notes=rep_notes
+            custom_notes=rep_notes,
+            hydrothermal_res=th_res,
+            structural_res=st_res
         )
 
         st.markdown("---")
@@ -70,27 +98,52 @@ def render_reports_tab(db: DatabaseManager, active_project: Optional[Dict[str, A
         st.markdown("##### Export Datasets to CSV")
         st.caption("Download structured tabular data for further processing in Excel, GIS, or MATLAB.")
 
-        exp_col1, exp_col2 = st.columns(2)
+        exp_col1, exp_col2, exp_col3 = st.columns(3)
         with exp_col1:
             st.markdown("###### Design Calculation Summary")
             calc_csv = export_calculation_to_csv(calc, active_project.get("name", "Project"))
             st.download_button(
-                label="📊 Export Active Design Calculation (CSV)",
+                label="📊 Export Design Calculation (CSV)",
                 data=calc_csv,
                 file_name=f"Design_Calc_{active_project.get('name', 'Hydro')}.csv",
                 mime="text/csv"
             )
 
         with exp_col2:
-            st.markdown("###### Dynamic Transient Simulation Time-Series")
+            st.markdown("###### Transient Simulation Time-Series")
             sim_res = run_dynamic_simulation(
                 config=SimulationConfig(duration_s=30.0, scenario_type="load_rejection", event_time_s=5.0)
             )
             sim_csv = export_simulation_to_csv(sim_res)
             st.download_button(
-                label="📈 Export Sample Simulation Time-Series (CSV)",
+                label="📈 Export Simulation Series (CSV)",
                 data=sim_csv,
                 file_name=f"Simulation_TimeSeries_{active_project.get('name', 'Hydro')}.csv",
+                mime="text/csv"
+            )
+
+        with exp_col3:
+            st.markdown("###### Hydrothermal & Structural Data")
+            if th_res is None:
+                th_res = analyze_hydrothermal_system(
+                    flow_lps=calc.flow_lps,
+                    inlet_temp_c=12.0,
+                    ambient_air_temp_c=-5.0,
+                    u_value_w_m2k=4.5,
+                    heat_transfer_area_m2=180.0,
+                    wall_thickness_m=0.35,
+                )
+                st_res = analyze_thermal_structural_behavior(
+                    initial_length_m=60.0,
+                    structure_temp_c=th_res.mean_fluid_temp_c,
+                    datum_temp_c=15.0,
+                    restraint_factor=0.5
+                )
+            hydro_csv = export_hydrothermal_to_csv(th_res, st_res, active_project.get("name", "Project"))
+            st.download_button(
+                label="🌡️ Export Hydrothermal Data (CSV)",
+                data=hydro_csv,
+                file_name=f"Hydrothermal_{active_project.get('name', 'Hydro')}.csv",
                 mime="text/csv"
             )
 

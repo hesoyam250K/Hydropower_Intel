@@ -33,7 +33,9 @@ def generate_pdf_report(
     location: str = "Cascade Range",
     river_name: str = "Clearwater Creek",
     engineer_name: str = "Civil / Hydro Systems Engineer",
-    custom_notes: str = ""
+    custom_notes: str = "",
+    hydrothermal_res: Optional[Any] = None,
+    structural_res: Optional[Any] = None
 ) -> bytes:
     """Generates a complete, multi-section engineering PDF report in memory."""
     buffer = io.BytesIO()
@@ -207,8 +209,42 @@ def generate_pdf_report(
         story.append(loss_table)
         story.append(Spacer(1, 10))
 
-    # 6. Rule-Based Engineering Insights & Recommendations
-    story.append(Paragraph("4. Rule-Based Engineering Observations & Site Recommendations", section_heading))
+    # 6. Hydrothermal Bridge & Conduit Assessment (If Enabled)
+    if hydrothermal_res:
+        story.append(Paragraph("4. Hydrothermal Conduit & Thermal Bridge Assessment", section_heading))
+        th = hydrothermal_res
+        st_data = structural_res
+        th_rows = [
+            ["Hydrothermal Parameter", "Governing Formula", "Value", "Unit"],
+            ["Fluid Mass Flow Rate", "ṁ = ρ × Q", f"{th.mass_flow_rate_kg_s:,.1f}", "kg/s"],
+            ["Inlet / Outlet Water Temp", "T_in / T_out", f"{th.inlet_temp_c:.1f} / {th.outlet_temp_c:.2f}", "°C"],
+            ["Ambient Air Temperature", "T_ambient", f"{th.ambient_air_temp_c:.1f}", "°C"],
+            ["Convective Heat Transfer", "Q_thermal = ṁ·cp·ΔT", f"{th.fluid_thermal_transfer_kw:,.1f}", "kW"],
+            ["Conductive Bridge Loss", "Q_cond = U·A·ΔT", f"{th.thermal_bridge_loss_kw:,.2f}", "kW"],
+            ["1D Fourier Conduction", "q = -k·∇T", f"{th.fourier_heat_flux_w_m2:.1f}", "W/m²"],
+        ]
+        if st_data:
+            th_rows.extend([
+                ["Linear Thermal Expansion", "ΔL = α·L₀·ΔT", f"{st_data.expansion_mm:+.2f}", "mm"],
+                ["Restrained Thermal Stress", "σ = R·E·α·ΔT", f"{st_data.thermal_stress_mpa:+.2f}", "MPa"],
+                ["Structural Utilization", "η = |σ| / σ_yield", f"{st_data.utilization_ratio_pct:.1f}%", f"Capacity: {st_data.allowable_strength_mpa:.0f} MPa"],
+            ])
+        th_table = Table(th_rows, colWidths=[150, 160, 110, 110])
+        th_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#065F46")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ]))
+        story.append(th_table)
+        story.append(Spacer(1, 8))
+
+    # 7. Rule-Based Engineering Insights & Recommendations
+    story.append(Paragraph("5. Rule-Based Engineering Observations & Site Recommendations", section_heading))
     insights = generate_calculation_insights(calc)
     for obs in insights:
         color_hex = "#2563EB" if obs.level in ("INFO", "OPTIMIZATION") else "#D97706"
@@ -283,3 +319,34 @@ def export_simulation_to_csv(sim: Any) -> str:
         "penstock_friction_head_m": sim.friction_head_m,
     })
     return df.to_csv(index=False)
+
+
+def export_hydrothermal_to_csv(
+    th_res: Any,
+    st_res: Optional[Any] = None,
+    project_name: str = "Hydropower Project"
+) -> str:
+    """Exports coupled hydrothermal and structural results to formatted CSV."""
+    rows = [
+        {"Parameter": "Project Name", "Value": project_name, "Unit": ""},
+        {"Parameter": "Date", "Value": datetime.now().isoformat(), "Unit": ""},
+        {"Parameter": "Mass Flow Rate", "Value": round(th_res.mass_flow_rate_kg_s, 2), "Unit": "kg/s"},
+        {"Parameter": "Volumetric Flow Rate", "Value": round(th_res.volumetric_flow_m3s, 4), "Unit": "m³/s"},
+        {"Parameter": "Inlet Fluid Temperature", "Value": round(th_res.inlet_temp_c, 2), "Unit": "°C"},
+        {"Parameter": "Outlet Fluid Temperature", "Value": round(th_res.outlet_temp_c, 2), "Unit": "°C"},
+        {"Parameter": "Mean Fluid Temperature", "Value": round(th_res.mean_fluid_temp_c, 2), "Unit": "°C"},
+        {"Parameter": "Ambient Air Temperature", "Value": round(th_res.ambient_air_temp_c, 2), "Unit": "°C"},
+        {"Parameter": "Convective Fluid Thermal Transfer", "Value": round(th_res.fluid_thermal_transfer_kw, 2), "Unit": "kW"},
+        {"Parameter": "Conductive Thermal Bridge Loss", "Value": round(th_res.thermal_bridge_loss_kw, 2), "Unit": "kW"},
+        {"Parameter": "1D Fourier Heat Flux", "Value": round(th_res.fourier_heat_flux_w_m2, 2), "Unit": "W/m²"},
+        {"Parameter": "Heat Transfer Mode", "Value": th_res.heat_transfer_mode, "Unit": ""},
+    ]
+    if st_res:
+        rows.extend([
+            {"Parameter": "Linear Thermal Expansion", "Value": round(st_res.expansion_mm, 2), "Unit": "mm"},
+            {"Parameter": "Restrained Thermal Stress", "Value": round(st_res.thermal_stress_mpa, 2), "Unit": "MPa"},
+            {"Parameter": "Restraint Factor R", "Value": round(st_res.restraint_factor, 2), "Unit": "fraction"},
+            {"Parameter": "Structural Utilization", "Value": round(st_res.utilization_ratio_pct, 1), "Unit": "%"},
+            {"Parameter": "Stress Nature", "Value": st_res.stress_nature, "Unit": ""},
+        ])
+    return pd.DataFrame(rows).to_csv(index=False)

@@ -12,7 +12,10 @@ from src.analytics.performance import (
 from src.analytics.reports import (
     generate_pdf_report,
     export_calculation_to_csv,
+    export_hydrothermal_to_csv,
 )
+from src.hydrothermal.heat_transfer import analyze_hydrothermal_system
+from src.hydrothermal.structural import analyze_thermal_structural_behavior
 
 
 def test_insights_generation():
@@ -67,3 +70,38 @@ def test_csv_export():
     csv_str = export_calculation_to_csv(calc, "Test Project")
     assert "Flow Rate (L/s)" in csv_str
     assert "500.0" in csv_str
+
+
+def test_hydrothermal_pdf_and_csv_reports():
+    """Verifies that hydrothermal results integrate into PDF reports and CSV exports."""
+    calc = calculate_comprehensive_hydropower(flow_lps=800.0, gross_head_m=25.0)
+    th = analyze_hydrothermal_system(
+        flow_lps=800.0,
+        inlet_temp_c=12.0,
+        ambient_air_temp_c=-4.0,
+        u_value_w_m2k=4.5,
+        heat_transfer_area_m2=150.0,
+        wall_thickness_m=0.35
+    )
+    st_res = analyze_thermal_structural_behavior(
+        initial_length_m=50.0,
+        structure_temp_c=th.mean_fluid_temp_c,
+        datum_temp_c=15.0,
+        restraint_factor=0.5
+    )
+
+    # PDF with hydrothermal section
+    pdf_bytes = generate_pdf_report(
+        calc=calc,
+        project_name="Bridge Hydro Plant",
+        hydrothermal_res=th,
+        structural_res=st_res
+    )
+    assert isinstance(pdf_bytes, bytes)
+    assert pdf_bytes.startswith(b"%PDF-")
+    assert len(pdf_bytes) > 2000
+
+    # Hydrothermal CSV
+    csv_str = export_hydrothermal_to_csv(th, st_res, "Bridge Hydro Plant")
+    assert "Mass Flow Rate" in csv_str
+    assert "Restrained Thermal Stress" in csv_str
