@@ -1,0 +1,109 @@
+{
+  "SCADA_TURB1_VIB_X": {
+    "component_id": "turbine_runner",
+    "aliases": [
+      "Turbine_01_MainShaft",
+      "turbine_runner",
+      "Turbine_Rotor_STEP"
+    ],
+    "metric": "Shaft Vibration",
+    "unit": "mm/s",
+    "warning_threshold": 4.5,
+    "critical_threshold": 8.5,
+    "comparison": ">",
+    "subsystem": "Turbine Runner & Shaft"
+  },
+  "HECRAS_GATE02_PRESS": {
+    "component_id": "intake_gate",
+    "aliases": [
+      "Spillway_Gate_02",
+      "intake_gate",
+      "Intake_Sluice_Gate"
+    ],
+    "metric": "Hydrostatic Pressure",
+    "unit": "kPa",
+    "warning_threshold": 380.0,
+    "critical_threshold": 450.0,
+    "comparison": ">",
+    "subsystem": "Intake & Spillway Headgate"
+  },
+  "IOT_DAM_CRACK_09": {
+    "component_id": "dam_structure",
+    "aliases": [
+      "Dam_Wall_Section_B",
+      "dam_structure",
+      "Concrete_Dam"
+    ],
+    "metric": "Concrete Displacement",
+    "unit": "mm",
+    "warning_threshold": 1.2,
+    "critical_threshold": 2.0,
+    "comparison": ">",
+    "subsystem": "Concrete Gravity Dam Crest"
+  },
+  "SCADA_BEARING_TEMP_01": {
+    "component_id": "generator_stator",
+    "aliases": [
+      "generator_stator",
+      "Generator_Main_Bearing"
+    ],
+    "metric": "Bearing Temperature",
+    "unit": "\u00b0C",
+    "warning_threshold": 65.0,
+    "critical_threshold": 75.0,
+    "comparison": ">",
+    "subsystem": "Synchronous Generator"
+  },
+  "IOT_PENSTOCK_SURGE_01": {
+    "component_id": "penstock_pipe",
+    "aliases": [
+      "penstock_pipe",
+      "High_Pressure_Penstock"
+    ],
+    "metric": "Transient Pressure",
+    "unit": "bar",
+    "warning_threshold": 18.0,
+    "critical_threshold": 22.0,
+    "comparison": ">",
+    "subsystem": "Penstock Conduit"
+  },
+  "IOT_BRIDGE_STRESS_01": {
+    "component_id": "thermal_bridge_regions",
+    "aliases": [
+      "thermal_bridge_regions",
+      "Bridge_Pier_Saddles"
+    ],
+    "metric": "Restrained Thermal Stress",
+    "unit": "MPa",
+    "warning_threshold": 20.0,
+    "critical_threshold": 30.0,
+    "comparison": ">",
+    "subsystem": "Hydrothermal Bridge Saddles"
+  },
+  "IOT_JOINT_TRAVEL_01": {
+    "component_id": "expansion_joints",
+    "aliases": [
+      "expansion_joints",
+      "Bridge_Modular_Joint"
+    ],
+    "metric": "Joint Travel",
+    "unit": "mm",
+    "warning_threshold": 30.0,
+    "critical_threshold": 45.0,
+    "comparison": ">",
+    "subsystem": "Elastomeric Expansion Joints"
+  },
+  "IOT_TURBINE_RPM_01": {
+    "component_id": "turbine_runner",
+    "aliases": [
+      "turbine_runner",
+      "Turbine_Rotor_STEP"
+    ],
+    "metric": "Runner Speed",
+    "unit": "RPM",
+    "warning_threshold": 1200.0,
+    "critical_threshold": 1450.0,
+    "comparison": ">",
+    "subsystem": "Turbine Runner"
+  }
+}

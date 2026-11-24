@@ -17,6 +17,7 @@ import streamlit as st
 from src.geometry.exporter import build_scene_and_export_glb
 from src.geometry.mesh_builder import PlantGeometryBuilder
 from src.engine.shared_data import SharedEngineeringContext
+from src.components.jarvis_viewer import render_jarvis_viewer
 
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static" / "three"

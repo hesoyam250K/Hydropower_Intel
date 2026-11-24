@@ -62,6 +62,19 @@ class SharedEngineeringContext:
     visualization_mode: str = "FLOW"  # 'FLOW', 'THERMAL', 'STRUCTURAL'
     active_component_id: Optional[str] = None
 
+    # 5. JARVIS Digital Twin, Fault Diagnostics & Physical Integration
+    active_faults: List[Dict[str, Any]] = field(default_factory=list)
+    highlighted_components: List[str] = field(default_factory=list)
+    isolated_component: Optional[str] = None
+    hud_theme: str = "cyan"  # 'cyan', 'gold', 'red', 'purple'
+    xray_mode: bool = False
+    exploded_view: bool = False
+    explosion_factor: float = 0.0
+    cutaway_mode: bool = False
+    ar_mode: bool = False
+    physical_turbine_mode: str = "VIRTUAL"  # 'VIRTUAL', 'HARDWARE', 'HYBRID'
+    turbine_measurements: Dict[str, Any] = field(default_factory=dict)
+
     def to_dict(self) -> Dict[str, Any]:
         """Serializes context for JSON transfer to Three.js or database."""
         return asdict(self)
