@@ -16,7 +16,7 @@ from src.hydrothermal.thermal_bridge import WallLayer, analyze_composite_thermal
 from src.hydrothermal.validation import validate_hydrothermal_inputs
 from src.engine.shared_data import SharedEngineeringContext, build_shared_context_from_calc
 from src.engine.hydropower import calculate_comprehensive_hydropower
-from src.components.three_viewer import render_threejs_viewer, render_peppers_ghost_hologram
+from src.components.three_viewer import render_threejs_viewer, render_peppers_ghost_hologram, render_jarvis_viewer
 from src.geometry.mesh_builder import PlantGeometryBuilder
 from src.geometry.exporter import build_scene_and_export_glb
 
@@ -397,14 +397,30 @@ def render_hydrothermal_3d_lab_tab(db: DatabaseManager, active_project: Optional
                 mime="model/gltf-binary"
             )
 
-        # Render Three.js Interactive Component
-        render_threejs_viewer(
-            context=shared_ctx,
-            builder=PlantGeometryBuilder(gross_head_m=gross_head, pipe_diameter_m=pipe_d, include_bridge=(model_scope != "HYDROPOWER_ONLY")),
-            mode=vis_mode,
-            model_filter=model_scope,
-            height=660
+        viewer_style = st.radio(
+            "Viewport Presentation Engine",
+            options=["Standard Engineering View", "JARVIS 3D HUD & Holographic AR"],
+            horizontal=True,
+            index=0
         )
+
+        # Render Selected Interactive Component
+        if viewer_style == "JARVIS 3D HUD & Holographic AR":
+            render_jarvis_viewer(
+                context=shared_ctx,
+                builder=PlantGeometryBuilder(gross_head_m=gross_head, pipe_diameter_m=pipe_d, include_bridge=(model_scope != "HYDROPOWER_ONLY")),
+                mode=vis_mode,
+                model_filter=model_scope,
+                height=700
+            )
+        else:
+            render_threejs_viewer(
+                context=shared_ctx,
+                builder=PlantGeometryBuilder(gross_head_m=gross_head, pipe_diameter_m=pipe_d, include_bridge=(model_scope != "HYDROPOWER_ONLY")),
+                mode=vis_mode,
+                model_filter=model_scope,
+                height=660
+            )
 
         st.caption("Navigation: Left Click + Drag to rotate | Right Click + Drag to pan | Mouse Wheel to zoom | Click components to inspect.")
 

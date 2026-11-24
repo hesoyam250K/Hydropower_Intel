@@ -24,6 +24,10 @@ from src.components.calculator import render_calculator_tab
 from src.components.simulator import render_simulator_tab
 from src.components.monitoring import render_monitoring_tab
 from src.components.hydrothermal_lab_view import render_hydrothermal_3d_lab_tab
+from src.components.design_import_view import render_design_import_tab
+from src.components.digital_twin_jarvis_view import render_digital_twin_jarvis_tab
+from src.components.fault_detection_view import render_fault_detection_tab
+from src.components.physical_turbine_view import render_physical_turbine_tab
 from src.components.analytics_view import render_analytics_tab
 from src.components.insights_view import render_insights_tab
 from src.components.reports_view import render_reports_tab
@@ -77,6 +81,10 @@ def main():
                 "Simulation Lab",
                 "Live Telemetry",
                 "Hydrothermal & 3D Lab",
+                "Design Import Centre",
+                "Digital Twin (JARVIS 3D)",
+                "Fault Detection Centre",
+                "Physical Turbine Lab",
                 "Analytics & Sensitivity",
                 "Engineering Insights",
                 "Reports & Exports",
@@ -123,6 +131,14 @@ def main():
         render_monitoring_tab(db, active_project)
     elif nav_section == "Hydrothermal & 3D Lab":
         render_hydrothermal_3d_lab_tab(db, active_project)
+    elif nav_section == "Design Import Centre":
+        render_design_import_tab(db, active_project)
+    elif nav_section == "Digital Twin (JARVIS 3D)":
+        render_digital_twin_jarvis_tab(db, active_project)
+    elif nav_section == "Fault Detection Centre":
+        render_fault_detection_tab(db, active_project)
+    elif nav_section == "Physical Turbine Lab":
+        render_physical_turbine_tab(db, active_project)
     elif nav_section == "Analytics & Sensitivity":
         render_analytics_tab(db, active_project)
     elif nav_section == "Engineering Insights":
