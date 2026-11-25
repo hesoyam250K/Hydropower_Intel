@@ -32,6 +32,7 @@ def render_hydrothermal_3d_lab_tab(db: DatabaseManager, active_project: Optional
     pipe_d = float(active_project.get("pipe_diameter_m", 0.50)) if active_project else 0.50
     pipe_l = float(active_project.get("pipe_length_m", 150.0)) if active_project else 150.0
     eff = float(active_project.get("efficiency", 0.82)) if active_project else 0.82
+    p_id = active_project.get("id") if active_project else None
 
     # Internal sub-navigation tabs
     tab_thermal, tab_3d, tab_hologram = st.tabs([
@@ -397,6 +398,24 @@ def render_hydrothermal_3d_lab_tab(db: DatabaseManager, active_project: Optional
                 mime="model/gltf-binary"
             )
 
+        # Check for imported CAD/BIM models for this project
+        imported_models = db.list_imported_models(project_id=p_id)
+        custom_glb = None
+        if imported_models:
+            model_options = ["Standard Procedural (Hydropower + Bridge)"] + [f"Imported CAD: {m['name']} ({m['format']})" for m in imported_models]
+            active_m_id = st.session_state.get("active_imported_model_id")
+            default_idx = 0
+            for idx, m in enumerate(imported_models):
+                if m["id"] == active_m_id:
+                    default_idx = idx + 1
+                    break
+            model_sel = st.selectbox("3D Geometry Source", options=model_options, index=default_idx if default_idx < len(model_options) else 0)
+            if model_sel != "Standard Procedural (Hydropower + Bridge)":
+                m_chosen = next((m for m in imported_models if f"Imported CAD: {m['name']} ({m['format']})" == model_sel), None)
+                if m_chosen and os.path.exists(m_chosen["file_path"]):
+                    with open(m_chosen["file_path"], "rb") as f:
+                        custom_glb = f.read()
+
         viewer_style = st.radio(
             "Viewport Presentation Engine",
             options=["Standard Engineering View", "JARVIS 3D HUD & Holographic AR"],
@@ -404,19 +423,27 @@ def render_hydrothermal_3d_lab_tab(db: DatabaseManager, active_project: Optional
             index=0
         )
 
+        # Retrieve active faults from shared FaultEngine
+        fault_payloads = None
+        if "fault_engine" in st.session_state:
+            fault_payloads = st.session_state["fault_engine"].get_3d_highlight_payloads()
+
         # Render Selected Interactive Component
         if viewer_style == "JARVIS 3D HUD & Holographic AR":
             render_jarvis_viewer(
                 context=shared_ctx,
                 builder=PlantGeometryBuilder(gross_head_m=gross_head, pipe_diameter_m=pipe_d, include_bridge=(model_scope != "HYDROPOWER_ONLY")),
+                custom_glb_bytes=custom_glb,
                 mode=vis_mode,
                 model_filter=model_scope,
+                fault_payloads=fault_payloads,
                 height=700
             )
         else:
             render_threejs_viewer(
                 context=shared_ctx,
                 builder=PlantGeometryBuilder(gross_head_m=gross_head, pipe_diameter_m=pipe_d, include_bridge=(model_scope != "HYDROPOWER_ONLY")),
+                custom_glb_bytes=custom_glb,
                 mode=vis_mode,
                 model_filter=model_scope,
                 height=660

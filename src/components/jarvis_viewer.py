@@ -817,9 +817,44 @@ def render_jarvis_viewer(
 
             function findMatchingMesh(target) {{
                 const clean = target.toLowerCase().replace(/_/g, "");
+                // ----------------------------------------------------------------
+                // Expanded keyword → mesh-name matching table
+                // Maps component_id tokens (from FaultEngine) to mesh name tokens
+                // (from the procedural GLB model built by PlantGeometryBuilder).
+                // ----------------------------------------------------------------
+                const keywordMap = [
+                    // Turbine / runner
+                    {{ tokens: ["turbine", "turb", "mainshaft", "runner", "shaft"], meshTokens: ["turbine", "runner"] }},
+                    // Spillway / gate / intake
+                    {{ tokens: ["spillway", "gate", "intake", "hecrasgate", "sluice"], meshTokens: ["gate", "intake"] }},
+                    // Dam / wall / crest
+                    {{ tokens: ["dam", "wall", "crest", "iotdam", "damcrack", "joint"], meshTokens: ["dam", "wall"] }},
+                    // Generator / bearing / stator
+                    {{ tokens: ["bearing", "generator", "stator", "overheat", "thrust"], meshTokens: ["generator", "bearing"] }},
+                    // Penstock / conduit / pipe
+                    {{ tokens: ["penstock", "conduit", "pipe", "pressure"], meshTokens: ["penstock", "pipe"] }},
+                    // Bridge / hydrothermal conduit
+                    {{ tokens: ["bridge", "saddle", "span", "thermal"], meshTokens: ["bridge", "conduit"] }},
+                ];
+
+                // 1. Direct substring match (original logic)
                 for (let k in meshMap) {{
                     if (k.toLowerCase().replace(/_/g, "").includes(clean)) return meshMap[k];
                 }}
+
+                // 2. Keyword table lookup
+                for (const rule of keywordMap) {{
+                    const tokenMatch = rule.tokens.some(tok => clean.includes(tok));
+                    if (tokenMatch) {{
+                        for (let k in meshMap) {{
+                            const meshClean = k.toLowerCase().replace(/_/g, "");
+                            if (rule.meshTokens.some(mt => meshClean.includes(mt))) {{
+                                return meshMap[k];
+                            }}
+                        }}
+                    }}
+                }}
+
                 return null;
             }}
 

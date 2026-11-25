@@ -39,9 +39,15 @@ def render_design_import_tab(db: DatabaseManager, active_project: Optional[Dict[
 
         with col_up1:
             uploaded_file = st.file_uploader(
-                "Choose CAD / BIM / GIS file",
-                type=["ifc", "xml", "landxml", "step", "stp", "iges", "igs", "stl", "obj", "glb", "gltf", "geojson", "json"],
-                help="Supports IFC 4.3, LandXML, STEP, STL, OBJ, GLB, and GeoJSON formats."
+                "Choose Engineering CAD / BIM / GIS / Data File",
+                type=[
+                    "dwg", "dxf", "dgn", "dwf", "dwt", "dws",
+                    "step", "stp", "iges", "igs", "stl", "obj", "3ds", "ply", "fbx", "glb", "gltf", "dae", "3mf",
+                    "ifc", "ifc4", "ifcxml", "ifczip", "landxml", "xml",
+                    "shp", "geojson", "json", "kml", "kmz", "gml", "gpkg", "tif", "tiff",
+                    "csv", "xlsx", "xls", "yaml", "yml", "vtk", "vtu", "vtp", "msh"
+                ],
+                help="Comprehensive engineering format support across CAD, BIM, GIS, 3D Solids, and Simulation Data."
             )
 
             model_custom_name = st.text_input(
@@ -50,16 +56,21 @@ def render_design_import_tab(db: DatabaseManager, active_project: Optional[Dict[
             )
 
         with col_up2:
+            dwg_conv = importer._dwg_converter_path
+            dwg_status = f"<span style='color: #34D399;'>Active ({dwg_conv.split(':')[0]})</span>" if dwg_conv else "<span style='color: #F59E0B;'>DXF Recommended (No ODA found)</span>"
+
             st.markdown(
-                """
+                f"""
                 <div style="background: #1E293B; border-left: 3px solid #00ffff; padding: 10px 14px; border-radius: 4px; font-size: 11px;">
-                    <b style="color: #00ffff;">Supported Specifications:</b><br/>
-                    • <b>IFC 4.3:</b> Bridges, concrete dams, retaining walls<br/>
-                    • <b>LandXML:</b> Digital terrain surfaces & pipe networks<br/>
-                    • <b>STEP / IGES:</b> Turbine runners, scroll casings, gates<br/>
-                    • <b>STL / OBJ:</b> Civil & mechanical mesh geometry<br/>
-                    • <b>GLB / GLTF:</b> Viewer-ready scene hierarchies<br/>
-                    • <b>GeoJSON:</b> GIS site boundaries & river channels
+                    <b style="color: #00ffff;">Engineering Format Pathways:</b><br/>
+                    • <b>CAD & Drafting:</b> .dwg, .dxf, .dgn, .dwf [DWG: {dwg_status}]<br/>
+                    • <b>3D Solids & Meshes:</b> .step, .iges, .stl, .obj, .ply, .3ds, .dae, .3mf, .glb<br/>
+                    • <b>Civil & BIM:</b> .ifc (4.3/zip/xml), .landxml (TIN & penstocks)<br/>
+                    • <b>GIS & Geospatial:</b> .geojson, .kml, .kmz, .gml, .shp<br/>
+                    • <b>Simulation & Data:</b> .csv, .xlsx, .yaml, .vtk, .msh<br/>
+                    <div style="margin-top: 5px; color: #94A3B8; font-size: 10px;">
+                        All imported models are shared across <b>3D Lab (JARVIS 3D)</b> and <b>Hydrothermal & 3D Lab</b>.
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -104,11 +115,16 @@ def render_design_import_tab(db: DatabaseManager, active_project: Optional[Dict[
                         st.session_state["active_imported_glb_bytes"] = res.glb_bytes
 
                         # Display Summary Cards
-                        sc1, sc2, sc3, sc4 = st.columns(4)
+                        sc1, sc2, sc3, sc4, sc5 = st.columns(5)
                         sc1.metric("Format", res.format_type)
-                        sc2.metric("Components", len(res.components))
-                        sc3.metric("Vertices", f"{res.total_vertices:,}")
-                        sc4.metric("Triangles", f"{res.total_faces:,}")
+                        sc2.metric("Pipeline", res.metadata.get("import_method", "NATIVE_DIRECT"))
+                        sc3.metric("Components", len(res.components))
+                        sc4.metric("Vertices", f"{res.total_vertices:,}")
+                        sc5.metric("Triangles", f"{res.total_faces:,}")
+
+                        if res.warnings:
+                            for w in res.warnings:
+                                st.warning(f"⚠️ {w}")
 
                         if res.geographic_origin.get("shifted_to_local_origin"):
                             st.info(
@@ -129,7 +145,10 @@ def render_design_import_tab(db: DatabaseManager, active_project: Optional[Dict[
                                 })
                             st.dataframe(comp_table, use_container_width=True)
 
-                        st.info("💡 You can now open this model directly inside the **Digital Twin (JARVIS 3D)** workspace!")
+                        st.success(
+                            "✓ **Cross-Environment Availability:** This model is now ready in both **Digital Twin (JARVIS 3D)** "
+                            "and **Hydrothermal & 3D Lab**!"
+                        )
                     else:
                         st.error(f"Ingestion failed: {', '.join(res.errors)}")
 
@@ -152,12 +171,12 @@ def render_design_import_tab(db: DatabaseManager, active_project: Optional[Dict[
                         st.write(f"• **Vertices / Faces:** `{m['vertex_count']:,}` / `{m['face_count']:,}`")
                         st.write(f"• **Path:** `{m['file_path']}`")
                     with m_cols[1]:
-                        if st.button("Set as Active Digital Twin", key=f"btn_activate_{m['id']}"):
+                        if st.button("Set as Active (3D & Hydrothermal)", key=f"btn_activate_{m['id']}"):
                             st.session_state["active_imported_model_id"] = m["id"]
                             if os.path.exists(m["file_path"]):
                                 with open(m["file_path"], "rb") as f:
                                     st.session_state["active_imported_glb_bytes"] = f.read()
-                            st.success(f"Active model set to '{m['name']}'.")
+                            st.success(f"Active model set to '{m['name']}' across 3D Lab and Hydrothermal Lab.")
                     with m_cols[2]:
                         if os.path.exists(m["file_path"]):
                             with open(m["file_path"], "rb") as f:
