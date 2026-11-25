@@ -35,21 +35,23 @@ def load_local_js(filename: str) -> str:
 def render_threejs_viewer(
     context: SharedEngineeringContext,
     builder: Optional[PlantGeometryBuilder] = None,
+    custom_glb_bytes: Optional[bytes] = None,
     mode: str = "FLOW",
     model_filter: str = "BOTH",  # 'BOTH', 'HYDROPOWER_ONLY', 'BRIDGE_ONLY'
     height: int = 650
 ) -> None:
     """Renders the interactive Three.js 3D engineering viewer inside Streamlit."""
-    include_bridge = model_filter in ("BOTH", "BRIDGE_ONLY")
-    actual_builder = builder or PlantGeometryBuilder(
-        gross_head_m=context.gross_head_m,
-        pipe_diameter_m=context.penstock_d if hasattr(context, "penstock_d") else 0.50,
-        bridge_length_m=60.0,
-        include_bridge=include_bridge
-    )
-
-    # Generate GLB in memory
-    glb_bytes = build_scene_and_export_glb(builder=actual_builder, context=context, mode=mode)
+    if custom_glb_bytes:
+        glb_bytes = custom_glb_bytes
+    else:
+        include_bridge = model_filter in ("BOTH", "BRIDGE_ONLY")
+        actual_builder = builder or PlantGeometryBuilder(
+            gross_head_m=context.gross_head_m,
+            pipe_diameter_m=context.penstock_d if hasattr(context, "penstock_d") else 0.50,
+            bridge_length_m=60.0,
+            include_bridge=include_bridge
+        )
+        glb_bytes = build_scene_and_export_glb(builder=actual_builder, context=context, mode=mode)
     glb_b64 = base64.b64encode(glb_bytes).decode("utf-8")
 
     three_js = load_local_js("three.min.js")

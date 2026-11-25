@@ -40,7 +40,10 @@ def render_digital_twin_jarvis_tab(db: DatabaseManager, active_project: Optional
     )
     shared_ctx = build_shared_context_from_calc(calc=calc_base, project=active_project)
 
-    fault_engine = FaultEngine(db_manager=db)
+    # Share FaultEngine via session_state so faults injected in Fault Detection tab persist here
+    if "fault_engine" not in st.session_state:
+        st.session_state["fault_engine"] = FaultEngine(db_manager=db)
+    fault_engine: FaultEngine = st.session_state["fault_engine"]
 
     # Sub-tabs
     tab_viewport, tab_peppers_ghost = st.tabs([
@@ -57,15 +60,19 @@ def render_digital_twin_jarvis_tab(db: DatabaseManager, active_project: Optional
             imported_models = db.list_imported_models(project_id=p_id)
             model_choices = ["Standard Procedural (Hydropower + Bridge)"]
             model_map = {}
-            for m in imported_models:
+            active_m_id = st.session_state.get("active_imported_model_id")
+            default_idx = 0
+            for idx, m in enumerate(imported_models):
                 label = f"CAD Asset: {m['name']} ({m['format']})"
                 model_choices.append(label)
                 model_map[label] = m
+                if m["id"] == active_m_id:
+                    default_idx = idx + 1
 
             selected_model_label = st.selectbox(
                 "3D Model Source",
                 options=model_choices,
-                index=0
+                index=default_idx if default_idx < len(model_choices) else 0
             )
 
         with c2:
@@ -103,6 +110,22 @@ def render_digital_twin_jarvis_tab(db: DatabaseManager, active_project: Optional
                 }[s],
                 index=0
             )
+
+        # Fault overlay controls
+        fault_col_a, fault_col_b = st.columns([1, 4])
+        with fault_col_a:
+            if st.button("🔄 Refresh Fault Overlay", help="Streamlit doesn't auto-refresh between tabs. Click to pull latest active faults from the shared engine."):
+                st.rerun()
+        with fault_col_b:
+            active_count = len(fault_engine.active_alerts)
+            if active_count == 0:
+                st.success("✓ **Fault Overlay:** 0 active faults — all systems nominal.")
+            else:
+                severity_counts = {}
+                for a in fault_engine.active_alerts.values():
+                    severity_counts[a.severity] = severity_counts.get(a.severity, 0) + 1
+                badge = " | ".join(f"{v}× {k}" for k, v in severity_counts.items())
+                st.warning(f"⚠ **Fault Overlay:** {active_count} active fault(s) loaded → {badge}")
 
         # Apply Live Telemetry if selected
         if data_source == "Live Telemetry Buffer" and "telemetry_buffer" in st.session_state and st.session_state["telemetry_buffer"]:

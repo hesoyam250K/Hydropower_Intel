@@ -43,28 +43,58 @@ def render_fault_detection_tab(db: DatabaseManager, active_project: Optional[Dic
                 box_color = "#EF4444" if is_crit else "#F59E0B"
                 badge_class = "badge-alarm" if is_crit else "badge-warning"
 
+                # Full engineering details card
                 st.markdown(
                     f"""
-                    <div style="background: #1E293B; border-left: 4px solid {box_color}; padding: 10px 14px; border-radius: 6px; margin-bottom: 10px;">
+                    <div style="background: #1E293B; border-left: 4px solid {box_color}; padding: 10px 14px; border-radius: 6px; margin-bottom: 6px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 700; color: #FFF; font-size: 13px;">{alert.message}</span>
                             <span class="badge {badge_class}">{alert.severity} • {alert.fault_type}</span>
                         </div>
-                        <div style="font-size: 11px; color: #94A3B8; margin-top: 5px;">
-                            Sensor: <code>{alert.sensor_id}</code> | 3D Target: <code>{alert.component_id}</code> |
-                            Measured: <b style="color: #FFF;">{alert.measured_value:.2f} {alert.unit}</b> (Limit: {alert.threshold_value:.2f} {alert.unit}) |
-                            Timestamp: {alert.timestamp[:19]}
+                        <div style="font-size: 11px; color: #94A3B8; margin-top: 5px; line-height: 1.7;">
+                            <b>Fault ID:</b> {alert.fault_id if alert.fault_id is not None else "N/A"} &nbsp;|&nbsp;
+                            <b>Fault Type:</b> {alert.fault_type} &nbsp;|&nbsp;
+                            <b>Detection Time:</b> {alert.timestamp[:19]}<br>
+                            <b>Sensor:</b> <code>{alert.sensor_id}</code> &nbsp;|&nbsp;
+                            <b>3D Target:</b> <code>{alert.component_id}</code><br>
+                            <b>Measured:</b> <span style="color: #FFF;">{alert.measured_value:.2f} {alert.unit}</span>
+                            &nbsp;vs&nbsp; <b>Threshold:</b> {alert.threshold_value:.2f} {alert.unit}
                         </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-                col_btn1, col_btn2 = st.columns([1, 4])
-                with col_btn1:
-                    if st.button("Acknowledge & Clear", key=f"clr_{alert.sensor_id}"):
+                col_ack, col_3d, col_status = st.columns([1.2, 1.2, 2.0])
+                with col_ack:
+                    if st.button(
+                        "✅ Acknowledge (Keep Record)",
+                        key=f"clr_{alert.sensor_id}",
+                        help="Clears this alert from the active list. The fault record is retained in the database for audit purposes."
+                    ):
                         engine.clear_alert(alert.sensor_id)
                         st.rerun()
+                with col_3d:
+                    if st.button("🔍 View in 3D →", key=f"3d_{alert.sensor_id}",
+                                 help="Sets focus component in JARVIS tab. Switch to Digital Twin (JARVIS 3D) tab to see it highlighted."):
+                        st.session_state["jarvis_focus_component"] = alert.component_id
+                        st.info(f"Switch to the **Digital Twin (JARVIS 3D)** tab to inspect `{alert.component_id}` in 3D.")
+                with col_status:
+                    res_key = f"res_status_{alert.sensor_id}"
+                    res_options = ["ACTIVE", "ACKNOWLEDGED", "UNDER_INSPECTION", "RESOLVED"]
+                    current_idx = res_options.index(
+                        st.session_state.get(res_key, "ACTIVE")
+                    ) if st.session_state.get(res_key, "ACTIVE") in res_options else 0
+                    new_status = st.selectbox(
+                        "Resolution Status",
+                        options=res_options,
+                        index=current_idx,
+                        key=f"sel_{res_key}",
+                        label_visibility="collapsed",
+                        help="Update the resolution status. Does not delete the fault record — it updates the status field for the inspection workflow."
+                    )
+                    if new_status != st.session_state.get(res_key, "ACTIVE"):
+                        st.session_state[res_key] = new_status
 
     # =========================================================================
     # TAB 2: LEVEL 2 STATISTICAL ANOMALY SCREENING
@@ -166,6 +196,7 @@ def render_fault_detection_tab(db: DatabaseManager, active_project: Optional[Dic
             if st.button("🚨 Inject Simulated Fault Scenario", type="primary"):
                 engine.inject_simulated_fault(scenario_choice[0], project_id=p_id)
                 st.success(f"Injected scenario: **{scenario_choice[1]}**. View 3D response in the Digital Twin (JARVIS 3D) view.")
+                st.session_state["fault_3d_refresh_needed"] = True
                 st.rerun()
 
         with d_col2:
